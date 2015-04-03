@@ -1,0 +1,21 @@
+{
+  "name": "ethergit.solidity.copmiler",
+  "description": "Solidity Compiler",
+  "version": "0.0.1",
+  "author": "EtherGit",
+  "contributors": [
+    {
+      "name": "",
+      "email": ""
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/etherj/ethergit.solidity.compiler"
+  },
+  "plugins": {
+    "compiler": {}
+  },
+  "categories": ["miscellaneous"],
+  "licenses": []
+}
