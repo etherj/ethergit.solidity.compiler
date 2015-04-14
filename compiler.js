@@ -73,8 +73,8 @@ define(function(require, exports, module) {
             );
         }
         
-        function binary(text, cb) {
-            solc(['--binary', 'stdout'], text, function(err, output) {
+        function binaryAndABI(text, cb) {
+            solc(['--binary', 'stdout', '--json-abi', 'stdout'], text, function(err, output) {
                 if (err) {
                     if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
                         errorDialog.show(err.message);
@@ -86,7 +86,12 @@ define(function(require, exports, module) {
                     return;
                 }
                 
-                cb(null, output.match(/(\w+)$/gm)[0]);
+                var match = (/=+\s(\w+)\s=+\nBinary:\s+(\w+)\nContract JSON ABI\n([\s\S]+$)/g).exec(output);
+                cb(null, {
+                    name: match[1],
+                    binary: match[2],
+                    abi: JSON.parse(match[3])
+                });
             });
         }
         
@@ -99,7 +104,7 @@ define(function(require, exports, module) {
         
         plugin.freezePublicAPI({
             // Compile Solidity text to binary.
-            binary: binary
+            binaryAndABI: binaryAndABI
         });
         
         register(null, {
