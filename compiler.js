@@ -95,6 +95,29 @@ define(function(require, exports, module) {
             });
         }
         
+        function getAST(text, cb) {
+            solc(['--ast-json', 'stdout'], text, function(err, output) {
+                if (err) {
+                    if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
+                        errorDialog.show(err.message);
+                        cb(err);
+                    } else {
+                        console.error('Unknown error: ' + err);
+                        errorDialog.show('Unknown error occured. See details in devtools.');
+                    }
+                    return;
+                }
+
+                var match = output.split(/=======.*=======/);
+
+		console.log("match",match);
+
+                cb(null, {
+                    ast : JSON.parse(match[1]),
+                });
+            });
+        }
+
         plugin.on('load', function() {
             load();
         });
@@ -104,7 +127,8 @@ define(function(require, exports, module) {
         
         plugin.freezePublicAPI({
             // Compile Solidity text to binary.
-            binaryAndABI: binaryAndABI
+            binaryAndABI: binaryAndABI,
+	    getAST: getAST
         });
         
         register(null, {
