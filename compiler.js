@@ -99,7 +99,7 @@ define(function(require, exports, module) {
             solc(['--ast-json', 'stdout'], text, function(err, output) {
                 if (err) {
                     if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
-                        errorDialog.show(err.message);
+                        //errorDialog.show("Parsing error occurred, double check file syntax please.");
                         cb(err);
                     } else {
                         console.error('Unknown error: ' + err);
@@ -109,8 +109,6 @@ define(function(require, exports, module) {
                 }
 
                 var match = output.split(/=======.*=======/);
-
-		console.log("match",match);
 
                 cb(null, {
                     ast : JSON.parse(match[1]),
