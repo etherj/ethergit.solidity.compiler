@@ -96,10 +96,18 @@ define(function(require, exports, module) {
                 if (!compiled.contracts.hasOwnProperty(name))
                     return cb('Could not find the contract with name ' + name);
 
+                try {
+                    var abi = JSON.parse(compiled.contracts[name]['json-abi']);
+                } catch (e) {
+                    console.error(e);
+                    errorDialog.show('Could not parse contract abi: ' + e.message);
+                    return cb('Could not parse contract abi: ' + e.message);
+                }
+                
                 cb(null, {
                     name: name,
                     binary: compiled.contracts[name].binary,
-                    abi: compiled.contracts[name]['json-abi']
+                    abi: abi
                 });
             });
         }
