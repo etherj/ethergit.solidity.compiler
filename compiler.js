@@ -83,24 +83,42 @@ define(function(require, exports, module) {
         }
         
         function binaryAndABI(text, cb) {
-            solc(['--binary', 'stdout', '--json-abi', 'stdout'], text, function(err, output) {
+            solc(['--combined-json', 'binary,json-abi'], text, function(err, output) {
                 if (err) {
                     if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
                         errorDialog.show(err.message);
-                        cb(err);
                     } else {
                         console.error('Unknown error: ' + err);
                         errorDialog.show('Unknown error occured. See details in devtools.');
                     }
-                    return;
+                    return cb(err);
+                }
+
+                try {
+                    var compiled = JSON.parse(output);
+                } catch (e) {
+                    console.error(e);
+                    errorDialog.show('Could not parse solc output: ' + e.message);
+                    return cb('Could not parse solc output: ' + e.message);
+                }
+
+                var contractNames = Object.keys(compiled.contracts);
+                if (contractNames.length !== 1)
+                    return cb('Each sol-file should contrain only one contract');
+
+                var name = contractNames[0];
+                try {
+                    var abi = JSON.parse(compiled.contracts[name]['json-abi']);
+                } catch (e) {
+                    console.error(e);
+                    errorDialog.show('Could not parse contract abi: ' + e.message);
+                    return cb('Could not parse contract abi: ' + e.message);
                 }
                 
-                var match = (/=+\s(\w+)\s=+\nBinary:\s+(\w+)\nContract JSON ABI\n([\s\S]+$)/g).exec(output);
-                if (!match) console.error('output: ' + output);
                 cb(null, {
-                    name: match[1],
-                    binary: match[2],
-                    abi: JSON.parse(match[3])
+                    name: name,
+                    binary: compiled.contracts[name].binary,
+                    abi: abi
                 });
             });
         }
