@@ -73,7 +73,7 @@ define(function(require, exports, module) {
             );
         }
         
-        function binaryAndABI(name, text, cb) {
+        function binaryAndABI(text, cb) {
             solc(['--combined-json', 'binary,json-abi'], text, function(err, output) {
                 if (err) {
                     if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
@@ -93,22 +93,19 @@ define(function(require, exports, module) {
                     return cb('Could not parse solc output: ' + e.message);
                 }
 
-                if (!compiled.contracts.hasOwnProperty(name))
-                    return cb('Could not find the contract with name ' + name);
-
                 try {
-                    var abi = JSON.parse(compiled.contracts[name]['json-abi']);
+                    cb(null, Object.keys(compiled.contracts).map(function(name) {
+                        return {
+                            name: name,
+                            binary: compiled.contracts[name].binary,
+                            abi: JSON.parse(compiled.contracts[name]['json-abi'])
+                        };
+                    }));
                 } catch (e) {
                     console.error(e);
                     errorDialog.show('Could not parse contract abi: ' + e.message);
                     return cb('Could not parse contract abi: ' + e.message);
                 }
-                
-                cb(null, {
-                    name: name,
-                    binary: compiled.contracts[name].binary,
-                    abi: abi
-                });
             });
         }
         
