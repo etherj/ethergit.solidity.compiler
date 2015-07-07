@@ -36,39 +36,48 @@ define(function(require, exports, module) {
         }
         
         function solc(args, input, cb) {
+            var solcBin = settings.get('user/ethergit-solidity-compiler/@solc');
             proc.spawn(
-                settings.get('user/ethergit-solidity-compiler/@solc'),
+                solcBin,
                 { args: args },
                 function(err, process) {
                     if (err) return cb({ type: 'SYSTEM', message: err });
-                    
+
+                    if (!process.pid) {
+                        return cb({
+                            type: 'SYSTEM',
+                            message: 'Could not find ' + solcBin + '. Please, specify a path to Solidity compiler in the preferences.'
+                        });
+                    }
+
+                    var errorRead = false;
                     var error = '';
                     process.stderr.on('data', function(chunk) {
                         error += chunk;
                     });
-                    
+                    process.stderr.on('end', function() {
+                        errorRead = true;
+                        done();
+                    });
+
+                    var outputRead = false;
                     var output = '';
                     process.stdout.on('data', function(chunk) {
                         output += chunk;
                     });
+                    process.stdout.on('end', function() {
+                        outputRead = true;
+                        done();
+                    });
                     
                     process.stdin.end(input);
                     
-                    process.on('exit', function() {
-                        var err = null;
-                        if (error.length !== 0) {
-                            err = {
-                                type: 'SYNTAX',
-                                message: error
-                            };
-                        } else if (output.length === 0) {
-                            err = {
-                                type: 'SYSTEM',
-                                message: 'Could not find ' + settings.get('user/ethergit-solidity-compiler/@solc') + '. Please, specify a path to Solidity compiler in the preferences.'
-                            };
-                        }
-                        cb(err, output);
-                    });
+                    function done() {
+                        if (!outputRead || !errorRead) return;
+                        
+                        if (error) cb({ type: 'SYNTAX', message: error });
+                        else cb(null, output);
+                    }
                 }
             );
         }
