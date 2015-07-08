@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-    main.consumes = ['Plugin', 'proc', 'settings', 'preferences', 'dialog.error'];
+    main.consumes = ['Plugin', 'proc', 'settings', 'preferences', 'dialog.error', 'c9'];
     main.provides = ['ethergit.solidity.compiler'];
     
     return main;
@@ -10,6 +10,7 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var prefs = imports.preferences;
         var errorDialog = imports['dialog.error'];
+        var c9 = imports.c9;
 
         var plugin = new Plugin('Ethergit', main.consumes);
         
@@ -19,7 +20,7 @@ define(function(require, exports, module) {
                     ['solc', 'solc']
                 ]);
             }, plugin);
-            
+
             prefs.add({
                 'Run' : {
                     position: 500,
@@ -34,8 +35,8 @@ define(function(require, exports, module) {
                 }
             }, plugin);
         }
-        
-        function solc(args, input, cb) {
+
+        function solcWithInput(args, input, cb) {
             var solcBin = settings.get('user/ethergit-solidity-compiler/@solc');
             proc.spawn(
                 solcBin,
@@ -82,44 +83,71 @@ define(function(require, exports, module) {
             );
         }
         
-        function binaryAndABI(text, cb) {
-            solc(['--combined-json', 'binary,json-abi'], text, function(err, output) {
-                if (err) {
-                    if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
-                        errorDialog.show(err.message);
-                    } else {
-                        console.error('Unknown error: ' + err);
-                        errorDialog.show('Unknown error occured. See details in devtools.');
+        function solc(args, cb) {
+            var solcBin = settings.get('user/ethergit-solidity-compiler/@solc');
+            proc.execFile(
+                solcBin,
+                {
+                    args: args,
+                    cwd: c9.workspaceDir
+                },
+                function(err, stdout, stderr) {
+                    if (err) {
+                        if (err.code === 'ENOENT')
+                            cb({
+                                type: 'SYSTEM',
+                                message: 'Could not find ' + solcBin + '. Please, specify a path to Solidity compiler in the preferences.'
+                            });
+                        else cb({ type: 'SYNTAX', message: err.stack });
+                    } else if (stderr.length !== 0) {
+                        cb({ type: 'SYSTEM', message: stderr });
+                    } else cb(null, stdout, stderr);
+                }
+            );
+        }
+        
+        function binaryAndABI(sources, cb) {
+            sources = ['./asdf.sol'];
+            solc(
+                sources.concat(['--combined-json', 'binary,json-abi']),
+                function(err, output) {
+                    if (err) {
+                        if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
+                            errorDialog.show(err.message);
+                        } else {
+                            console.error('Unknown error: ' + err);
+                            errorDialog.show('Unknown error occured. See details in devtools.');
+                        }
+                        return cb(err);
                     }
-                    return cb(err);
-                }
 
-                try {
-                    var compiled = JSON.parse(output);
-                } catch (e) {
-                    console.error(e);
-                    errorDialog.show('Could not parse solc output: ' + e.message);
-                    return cb('Could not parse solc output: ' + e.message);
-                }
+                    try {
+                        var compiled = JSON.parse(output);
+                    } catch (e) {
+                        console.error(e);
+                        errorDialog.show('Could not parse solc output: ' + e.message);
+                        return cb('Could not parse solc output: ' + e.message);
+                    }
 
-                try {
-                    cb(null, Object.keys(compiled.contracts).map(function(name) {
-                        return {
-                            name: name,
-                            binary: compiled.contracts[name].binary,
-                            abi: JSON.parse(compiled.contracts[name]['json-abi'])
-                        };
-                    }));
-                } catch (e) {
-                    console.error(e);
-                    errorDialog.show('Could not parse contract abi: ' + e.message);
-                    return cb('Could not parse contract abi: ' + e.message);
+                    try {
+                        cb(null, Object.keys(compiled.contracts).map(function(name) {
+                            return {
+                                name: name,
+                                binary: compiled.contracts[name].binary,
+                                abi: JSON.parse(compiled.contracts[name]['json-abi'])
+                            };
+                        }));
+                    } catch (e) {
+                        console.error(e);
+                        errorDialog.show('Could not parse contract abi: ' + e.message);
+                        return cb('Could not parse contract abi: ' + e.message);
+                    }
                 }
-            });
+            );
         }
         
         function getAST(text, cb) {
-            solc(['--ast-json', 'stdout'], text, function(err, output) {
+            solcWithInput(['--ast-json', 'stdout'], text, function(err, output) {
                 if (err) {
                     if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
                         //errorDialog.show("Parsing error occurred, double check file syntax please.");
@@ -134,7 +162,7 @@ define(function(require, exports, module) {
                 var match = output.split(/=======.*=======/);
 
                 cb(null, {
-                    ast : JSON.parse(match[1]),
+                    ast : JSON.parse(match[1])
                 });
             });
         }
