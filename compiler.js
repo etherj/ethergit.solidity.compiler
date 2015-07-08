@@ -107,7 +107,6 @@ define(function(require, exports, module) {
         }
         
         function binaryAndABI(sources, cb) {
-            sources = ['./asdf.sol'];
             solc(
                 sources.concat(['--combined-json', 'binary,json-abi']),
                 function(err, output) {
