@@ -93,12 +93,26 @@ define(function(require, exports, module) {
                 },
                 function(err, stdout, stderr) {
                     if (err) {
-                        if (err.code === 'ENOENT')
+                        if (err.code === 'ENOENT') {
                             cb({
                                 type: 'SYSTEM',
                                 message: 'Could not find ' + solcBin + '. Please, specify a path to Solidity compiler in the preferences.'
                             });
-                        else cb({ type: 'SYNTAX', message: err.stack });
+                        } else if (err.message.indexOf('Command failed: solc') !== -1) {
+                            var info = err.message.match(/\.(\/\w+\.sol):(\d+):(\d+):/);
+                            cb({
+                                type: 'SYNTAX',
+                                message: err.message.substr(err.message.indexOf('\n') + 1),
+                                file: info[1],
+                                line: info[2],
+                                column: info[3]
+                            });
+                        } else {
+                            cb({
+                                type: 'UNKNOWN',
+                                message: error.message
+                            });
+                        }
                     } else if (stderr.length !== 0) {
                         cb({ type: 'SYSTEM', message: stderr });
                     } else cb(null, stdout, stderr);
@@ -110,21 +124,12 @@ define(function(require, exports, module) {
             solc(
                 sources.concat(['--combined-json', 'binary,json-abi']),
                 function(err, output) {
-                    if (err) {
-                        if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
-                            errorDialog.show(err.message);
-                        } else {
-                            console.error('Unknown error: ' + err);
-                            errorDialog.show('Unknown error occured. See details in devtools.');
-                        }
-                        return cb(err);
-                    }
+                    if (err) return cb(err);
 
                     try {
                         var compiled = JSON.parse(output);
                     } catch (e) {
                         console.error(e);
-                        errorDialog.show('Could not parse solc output: ' + e.message);
                         return cb('Could not parse solc output: ' + e.message);
                     }
 
@@ -138,7 +143,6 @@ define(function(require, exports, module) {
                         }));
                     } catch (e) {
                         console.error(e);
-                        errorDialog.show('Could not parse contract abi: ' + e.message);
                         return cb('Could not parse contract abi: ' + e.message);
                     }
                 }
