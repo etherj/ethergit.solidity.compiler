@@ -99,7 +99,7 @@ define(function(require, exports, module) {
                                 message: 'Could not find ' + solcBin + '. Please, specify a path to Solidity compiler in the preferences.'
                             });
                         } else if (err.message.indexOf('Command failed: solc') !== -1) {
-                            var info = err.message.match(/\.(\/\w+\.sol):(\d+):(\d+):/);
+                            var info = err.message.match(/\.([\/\w]+\.sol):(\d+):(\d+):/);
                             cb({
                                 type: 'SYNTAX',
                                 message: err.message.substr(err.message.indexOf('\n') + 1),
@@ -110,7 +110,7 @@ define(function(require, exports, module) {
                         } else {
                             cb({
                                 type: 'UNKNOWN',
-                                message: error.message
+                                message: err.message
                             });
                         }
                     } else if (stderr.length !== 0) {
