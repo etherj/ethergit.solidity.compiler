@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-    main.consumes = ['Plugin', 'proc', 'settings', 'preferences', 'dialog.error', 'c9'];
+    main.consumes = ['Plugin', 'proc', 'settings', 'preferences', 'dialog.error', 'c9', 'ethergit.libs'];
     main.provides = ['ethergit.solidity.compiler'];
     
     return main;
@@ -11,7 +11,10 @@ define(function(require, exports, module) {
         var prefs = imports.preferences;
         var errorDialog = imports['dialog.error'];
         var c9 = imports.c9;
+        var libs = imports['ethergit.libs'];
 
+        var _ = libs.lodash();
+        
         var plugin = new Plugin('Ethergit', main.consumes);
         
         function load() {
@@ -122,7 +125,7 @@ define(function(require, exports, module) {
         
         function binaryAndABI(sources, cb) {
             solc(
-                sources.concat(['--combined-json', 'binary,json-abi']),
+                sources.concat(['--combined-json', 'binary,json-abi,ast']),
                 function(err, output) {
                     if (err) return cb(err);
 
@@ -134,16 +137,39 @@ define(function(require, exports, module) {
                     }
 
                     try {
-                        cb(null, Object.keys(compiled.contracts).map(function(name) {
-                            return {
-                                name: name,
-                                binary: compiled.contracts[name].binary,
-                                abi: JSON.parse(compiled.contracts[name]['json-abi'])
-                            };
-                        }));
+                        cb(
+                            null,
+                            findNotAbstractContracts(compiled.sources)
+                                .map(function(name) {
+                                    return {
+                                        name: name,
+                                        binary: compiled.contracts[name].binary,
+                                        abi: JSON.parse(compiled.contracts[name]['json-abi'])
+                                    };
+                                })
+                        );
                     } catch (e) {
                         console.error(e);
                         return cb('Could not parse contract abi: ' + e.message);
+                    }
+
+                    function findNotAbstractContracts(sources) {
+                        return _(sources).map(function(source) {
+                            return _(source.AST.children)
+                                .filter(function(node) {
+                                    return node.name === 'Contract' && !isAbstract(node);
+                                })
+                                .map('attributes.name')
+                                .value();
+                        }).flatten().value();
+
+                        function isAbstract(node) {
+                            return node.attributes.name === 'abstract' ||
+                                _.where(node.children, {
+                                    name: 'Identifier',
+                                    attributes: { value: 'abstract' }
+                                }).length != 0;
+                        }
                     }
                 }
             );
