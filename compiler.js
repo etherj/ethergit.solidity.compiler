@@ -92,13 +92,13 @@ define(function(require, exports, module) {
             );
         }
         
-        function solc(args, cb) {
+        function solc(args, dir, cb) {
             var solcBin = settings.get('user/ethergit-solidity-compiler/@solc');
             proc.execFile(
                 solcBin,
                 {
                     args: args,
-                    cwd: c9.workspaceDir
+                    cwd: c9.workspaceDir + dir
                 },
                 function(err, stdout, stderr) {
                     if (err) {
@@ -108,7 +108,9 @@ define(function(require, exports, module) {
                                 message: 'Could not find ' + solcBin + '. Please, specify a path to Solidity compiler in the preferences.'
                             });
                         } else if (err.message.indexOf('Command failed: solc') !== -1) {
-                            var info = err.message.match(/^\.([^: ]+):(\d+):(\d+):/m);
+                            var info = err.message.match(/^([^: ]+):(\d+):(\d+):/m);
+                            var file = _.startsWith(info[1], './') ?
+                                    info[1].substr(1) : '/' + info[1];
                             cb({
                                 type: 'SYNTAX',
                                 message: err.message.substr(err.message.indexOf('\n') + 1),
@@ -129,14 +131,14 @@ define(function(require, exports, module) {
             );
         }
         
-        function binaryAndABI(sources, cb) {
+        function binaryAndABI(sources, dir, cb) {
             async.waterfall([
                 addDependencies.bind(null, sources),
                 compile
             ], cb);
             
             function addDependencies(sources, cb) {
-                getDependencies(sources, function(err, dependencies) {
+                getDependencies(sources, dir, function(err, dependencies) {
                     if (err) return cb(err);
                     cb(null, _.union(sources, dependencies));
                 });
@@ -144,6 +146,7 @@ define(function(require, exports, module) {
             function compile(sources, cb) {
                 solc(
                     sources.concat(['--combined-json', 'binary,json-abi,ast']),
+                    dir,
                     function(err, output) {
                         if (err) return cb(err);
 
@@ -227,9 +230,9 @@ define(function(require, exports, module) {
             });
         }
 
-        function getDependencies(files, cb) {
+        function getDependencies(files, dir, cb) {
             async.map(files, function(file, cb) {
-                fs.readFile(file, function(err, content) {
+                fs.readFile(dir + file, function(err, content) {
                     if (err) return cb(err);
                     var rx = /^(?:\s*import\s*")([^"]*)"/gm,
                         match,
