@@ -155,14 +155,26 @@ define(function(require, exports, module) {
 
                     function findNotAbstractContracts(sources) {
                         return _(sources).map(function(source) {
-                            return _(source.AST.children)
-                                .filter(function(node) {
-                                    return node.name === 'Contract' && !isAbstract(node);
-                                })
-                                .map('attributes.name')
+                            return _(extractContracts(source.AST))
+                                .where({ abstract: false })
+                                .map('name')
                                 .value();
                         }).flatten().value();
-
+                        
+                        function extractContracts(node) {
+                            var contracts = _(node.children)
+                                    .map(extractContracts)
+                                    .flatten()
+                                    .value();
+                            if (node.name === 'Contract') {
+                                contracts.push({
+                                    name: node.attributes.name,
+                                    abstract: isAbstract(node)
+                                });
+                            }
+                            return contracts;
+                        }
+                        
                         function isAbstract(node) {
                             return node.attributes.name === 'abstract' ||
                                 _.where(node.children, {
