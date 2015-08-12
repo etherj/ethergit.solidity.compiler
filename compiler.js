@@ -109,15 +109,18 @@ define(function(require, exports, module) {
                             });
                         } else if (err.message.indexOf('Command failed: solc') !== -1) {
                             var info = err.message.match(/^([^: ]+):(\d+):(\d+):/m);
-                            var file = _.startsWith(info[1], './') ?
-                                    info[1].substr(1) : '/' + info[1];
-                            cb({
-                                type: 'SYNTAX',
-                                message: err.message.substr(err.message.indexOf('\n') + 1),
-                                file: info[1],
-                                line: info[2],
-                                column: info[3]
-                            });
+                            if (!info) cb({ type: 'SYSTEM', message: err.message });
+                            else {
+                                var file = _.startsWith(info[1], './') ?
+                                        info[1].substr(1) : '/' + info[1];
+                                cb({
+                                    type: 'SYNTAX',
+                                    message: err.message.substr(err.message.indexOf('\n') + 1),
+                                    file: info[1],
+                                    line: info[2],
+                                    column: info[3]
+                                });
+                            }
                         } else {
                             cb({
                                 type: 'UNKNOWN',
