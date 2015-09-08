@@ -148,7 +148,7 @@ define(function(require, exports, module) {
             }
             function compile(sources, cb) {
                 solc(
-                    sources.concat(['--combined-json', 'binary,json-abi,ast']),
+                    sources.concat(['--combined-json', 'bin,abi,ast']),
                     dir,
                     function(err, output) {
                         if (err) return cb(err);
@@ -167,8 +167,8 @@ define(function(require, exports, module) {
                                     .map(function(name) {
                                         return {
                                             name: name,
-                                            binary: compiled.contracts[name].binary,
-                                            abi: JSON.parse(compiled.contracts[name]['json-abi'])
+                                            binary: compiled.contracts[name].bin,
+                                            abi: JSON.parse(compiled.contracts[name]['abi'])
                                         };
                                     })
                             );
