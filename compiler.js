@@ -107,7 +107,7 @@ define(function(require, exports, module) {
                                 type: 'SYSTEM',
                                 message: 'Could not find ' + solcBin + '. Please, specify a path to Solidity compiler in the preferences.'
                             });
-                        } else if (err.message.indexOf('Command failed: solc') !== -1) {
+                        } else if (err.message.indexOf('Command failed: ') !== -1) {
                             var info = err.message.match(/^([^: ]+):(\d+):(\d+):/m);
                             if (!info) cb({ type: 'SYSTEM', message: err.message });
                             else {
