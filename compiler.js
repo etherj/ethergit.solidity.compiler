@@ -98,7 +98,8 @@ define(function(require, exports, module) {
                 solcBin,
                 {
                     args: args,
-                    cwd: c9.workspaceDir + dir
+                    cwd: c9.workspaceDir + dir,
+                    maxBuffer: 1024 * 1024
                 },
                 function(err, stdout, stderr) {
                     if (err) {
