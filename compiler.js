@@ -149,7 +149,7 @@ define(function(require, exports, module) {
             }
             function compile(sources, cb) {
                 solc(
-                    sources.concat(['--combined-json', 'bin,abi,ast']),
+                    sources.concat(['--optimize', '--combined-json', 'bin,abi,ast']),
                     dir,
                     function(err, output) {
                         if (err) return cb(err);
