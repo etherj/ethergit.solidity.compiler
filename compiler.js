@@ -214,7 +214,7 @@ define(function(require, exports, module) {
         }
         
         function getAST(text, cb) {
-            solcWithInput(['--ast-json', 'stdout'], text, function(err, output) {
+            solcWithInput(['--combined-json', 'ast'], text, function(err, output) {
                 if (err) {
                     if (err.type === 'SYNTAX' || err.type === 'SYSTEM') {
                         //errorDialog.show("Parsing error occurred, double check file syntax please.");
@@ -226,10 +226,8 @@ define(function(require, exports, module) {
                     return;
                 }
 
-                var match = output.split(/=======.*=======/);
-
                 cb(null, {
-                    ast : JSON.parse(match[1])
+                    ast : JSON.parse(output).sources['<stdin>'].AST
                 });
             });
         }
