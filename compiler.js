@@ -202,9 +202,15 @@ define(function(require, exports, module) {
               
               function isAbstract(node) {
                 return node.attributes.name === 'abstract' ||
+                  // solc <= 0.2.0
                   _.where(node.children, {
                     name: 'Identifier',
                     attributes: { value: 'abstract' }
+                  }).length != 0 ||
+                  // solc > 0.2.0
+                  _.where(node.children, {
+                    name: 'UserDefinedTypeName',
+                    attributes: { name: 'abstract' }
                   }).length != 0;
               }
             }
