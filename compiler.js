@@ -169,7 +169,9 @@ define(function(require, exports, module) {
                     return {
                       name: name,
                       binary: compiled.contracts[name].bin,
-                      abi: JSON.parse(compiled.contracts[name]['abi'])
+                      abi: JSON.parse(compiled.contracts[name]['abi']),
+                      root: dir,
+                      sources: sources
                     };
                   })
               );
