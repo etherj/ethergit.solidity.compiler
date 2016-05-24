@@ -1,13 +1,14 @@
 define(function(require, exports, module) {
-    main.consumes = [
-        'Plugin', 'proc', 'settings', 'preferences', 'dialog.error', 'c9', 'fs',
-      'ethergit.libs'
-    ];
+  main.consumes = [
+    'Plugin', 'proc', 'settings', 'preferences', 'dialog.error', 'c9', 'fs',
+    'ethergit.libs'
+  ];
   main.provides = ['ethergit.solidity.compiler'];
-  
   return main;
 
   function main(options, imports, register) {
+    this.version = JSON.parse(require('text!./package.json')).version;
+    
     var Plugin = imports.Plugin;
     var proc = imports.proc;
     var settings = imports.settings;
