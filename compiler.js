@@ -136,16 +136,10 @@ define(function(require, exports, module) {
     
     function binaryAndABI(sources, dir, cb) {
       async.waterfall([
-        addDependencies.bind(null, sources),
+        getDependencies.bind(null, sources, dir),
         compile
       ], cb);
       
-      function addDependencies(sources, cb) {
-        getDependencies(sources, dir, function(err, dependencies) {
-          if (err) return cb(err);
-          cb(null, _.union(sources, dependencies));
-        });
-      }
       function compile(sources, cb) {
         solc(
           sources.concat(['--optimize', '--combined-json', 'bin,abi,ast']),
@@ -243,21 +237,29 @@ define(function(require, exports, module) {
     }
 
     function getDependencies(files, dir, cb) {
-      async.map(files, function(file, cb) {
-        fs.readFile(dir + file, function(err, content) {
-          if (err) return cb(err);
-          var rx = /^(?:\s*import\s*")([^"]*)"/gm,
-              match,
-              dependencies = [];
-          while ((match = rx.exec(content)) !== null) {
-            dependencies.push(match[1]);
-          }
-          cb(null, dependencies);
-        });
-      }, function(err, dependencies) {
-        if (err) cb(err);
-        else cb(null, _.flatten(dependencies));
-      });
+      var dependencies = [];
+      getDeps(files, dependencies, _.partial(cb, _, dependencies));
+
+      function getDeps(files, dependencies, cb) {
+        async.eachSeries(files, function(file, cb) {
+          if (_.startsWith(file, './')) file = file.substr(2);
+          
+          if (_.includes(dependencies, file)) return cb();
+
+          dependencies.push(file);
+          
+          fs.readFile(dir + file, function(err, content) {
+            if (err) return cb(err);
+            var rx = /^(?:\s*import\s*")([^"]*)"/gm,
+                match,
+                deps = [];
+            while ((match = rx.exec(content)) !== null) {
+              deps.push(match[1]);
+            }
+            getDeps(deps, dependencies, cb);
+          });
+        }, cb);
+      }
     }
 
 
