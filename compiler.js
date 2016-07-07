@@ -129,8 +129,6 @@ define(function(require, exports, module) {
                 message: err.message
               });
             }
-          } else if (stderr.length !== 0) {
-            cb({ type: 'SYSTEM', message: stderr });
           } else cb(null, stdout, stderr);
         }
       );
@@ -152,7 +150,7 @@ define(function(require, exports, module) {
         solc(
           sources.concat(['--optimize', '--combined-json', 'bin,abi,ast']),
           dir,
-          function(err, output) {
+          function(err, output, warnings) {
             if (err) return cb(err);
 
             try {
@@ -165,16 +163,19 @@ define(function(require, exports, module) {
             try {
               cb(
                 null,
-                findNotAbstractContracts(compiled.sources)
-                  .map(function(name) {
-                    return {
-                      name: name,
-                      binary: compiled.contracts[name].bin,
-                      abi: JSON.parse(compiled.contracts[name]['abi']),
-                      root: dir,
-                      sources: sources
-                    };
-                  })
+                {
+                  warnings: warnings.length == 0 ? null : warnings,
+                  contracts: findNotAbstractContracts(compiled.sources)
+                    .map(function(name) {
+                      return {
+                        name: name,
+                        binary: compiled.contracts[name].bin,
+                        abi: JSON.parse(compiled.contracts[name]['abi']),
+                        root: dir,
+                        sources: sources
+                      };
+                    })
+                }
               );
             } catch (e) {
               console.error(e);
