@@ -142,7 +142,7 @@ define(function(require, exports, module) {
       
       function compile(sources, cb) {
         solc(
-          sources.concat(['--optimize', '--combined-json', 'bin,abi,ast']),
+          sources.concat(['--optimize', '--combined-json', 'bin,abi,srcmap-runtime']),
           dir,
           function(err, output, warnings) {
             if (err) return cb(err);
@@ -159,16 +159,19 @@ define(function(require, exports, module) {
                 null,
                 {
                   warnings: warnings.length == 0 ? null : warnings,
-                  contracts: findNotAbstractContracts(compiled.sources)
-                    .map(function(name) {
-                      return {
-                        name: name,
-                        binary: compiled.contracts[name].bin,
-                        abi: JSON.parse(compiled.contracts[name]['abi']),
-                        root: dir,
-                        sources: sources
-                      };
-                    })
+                  contracts: _.map(compiled.contracts, function(contract, name) {
+                    return {
+                      name: name,
+                      binary: contract.bin,
+                      abi: JSON.parse(contract.abi),
+                      root: dir,
+                      sources: sources,
+                      srcmap: contract.srcmap,
+                      sourceList: _.map(compiled.sourceList, function(source) {
+                        return '/root/workspace' + dir + source;
+                      })
+                    };
+                  })
                 }
               );
             } catch (e) {
