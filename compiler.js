@@ -134,7 +134,7 @@ define(function(require, exports, module) {
       );
     }
     
-    function binaryAndABI(sources, dir, cb) {
+    function binaryAndABI(ignoreAbstract, sources, dir, cb) {
       async.waterfall([
         getDependencies.bind(null, sources, dir),
         compile
@@ -154,21 +154,36 @@ define(function(require, exports, module) {
               return cb('Could not parse solc output: ' + e.message);
             }
 
+            var contracts;
+            if (ignoreAbstract) {
+              contracts = findNotAbstractContracts(compiled.sources)
+                .map(function(name) {
+                  return {
+                    name: name,
+                    binary: compiled.contracts[name].bin,
+                    abi: JSON.parse(compiled.contracts[name]['abi']),
+                    root: dir,
+                    sources: sources
+                  };
+                });
+            } else {
+              contracts = _.map(compiled.contracts, function(contract, name) {
+                return {
+                  name: name,
+                  binary: contract.bin,
+                  abi: JSON.parse(contract.abi),
+                  root: dir,
+                  sources: sources
+                };
+              });
+            }
+
             try {
               cb(
                 null,
                 {
                   warnings: warnings.length == 0 ? null : warnings,
-                  contracts: findNotAbstractContracts(compiled.sources)
-                    .map(function(name) {
-                      return {
-                        name: name,
-                        binary: compiled.contracts[name].bin,
-                        abi: JSON.parse(compiled.contracts[name]['abi']),
-                        root: dir,
-                        sources: sources
-                      };
-                    })
+                  contracts: contracts
                 }
               );
             } catch (e) {
