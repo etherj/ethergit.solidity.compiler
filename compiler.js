@@ -142,7 +142,7 @@ define(function(require, exports, module) {
       
       function compile(sources, cb) {
         solc(
-          sources.concat(['--combined-json', 'bin,abi,srcmap-runtime,ast']),
+          sources.concat(['--combined-json', 'bin,abi,srcmap,srcmap-runtime,ast']),
           dir,
           function(err, output, warnings) {
             if (err) return cb(err);
@@ -167,7 +167,8 @@ define(function(require, exports, module) {
                       root: dir,
                       sources: sources,
                       ast: compiled.sources,
-                      srcmap: contract['srcmap-runtime'],
+                      srcmap: contract['srcmap'],
+                      srcmapRuntime: contract['srcmap-runtime'],
                       sourceList: _.map(compiled.sourceList, function(source) {
                         return '/root/workspace' + dir + source;
                       })
