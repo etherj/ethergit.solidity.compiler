@@ -134,92 +134,53 @@ define(function(require, exports, module) {
       );
     }
     
-    function binaryAndABI(sources, dir, cb) {
-      async.waterfall([
-        getDependencies.bind(null, sources, dir),
-        compile
-      ], cb);
-      
-      function compile(sources, cb) {
-        solc(
-          sources.concat(['--combined-json', 'bin,abi,srcmap,srcmap-runtime,ast']),
-          dir,
-          function(err, output, warnings) {
-            if (err) return cb(err);
+    function binaryAndABI(sources, dir, withDebug, cb) {
+      var options = withDebug ?
+            ['--combined-json', 'bin,abi,srcmap,srcmap-runtime,ast'] :
+            ['--optimize', '--combined-json', 'bin,abi,ast'];
+      solc(
+        sources.concat(options),
+        dir,
+        function(err, output, warnings) {
+          if (err) return cb(err);
 
-            try {
-              var compiled = JSON.parse(output);
-            } catch (e) {
-              console.error(e);
-              return cb('Could not parse solc output: ' + e.message);
-            }
-
-            try {
-              cb(
-                null,
-                {
-                  warnings: warnings.length == 0 ? null : warnings,
-                  contracts: _.map(compiled.contracts, function(contract, name) {
-                    return {
-                      name: name,
-                      binary: contract.bin,
-                      abi: JSON.parse(contract.abi),
-                      root: dir,
-                      sources: sources,
-                      ast: compiled.sources,
-                      srcmap: contract['srcmap'],
-                      srcmapRuntime: contract['srcmap-runtime'],
-                      sourceList: _.map(compiled.sourceList, function(source) {
-                        return '/root/workspace' + dir + source;
-                      })
-                    };
-                  })
-                }
-              );
-            } catch (e) {
-              console.error(e);
-              return cb('Could not parse contract abi: ' + e.message);
-            }
-
-            function findNotAbstractContracts(sources) {
-              return _(sources).map(function(source) {
-                return _(extractContracts(source.AST))
-                  .where({ abstract: false })
-                  .map('name')
-                  .value();
-              }).flatten().value();
-              
-              function extractContracts(node) {
-                var contracts = _(node.children)
-                      .map(extractContracts)
-                      .flatten()
-                      .value();
-                if (node.name === 'Contract') {
-                  contracts.push({
-                    name: node.attributes.name,
-                    abstract: isAbstract(node)
-                  });
-                }
-                return contracts;
-              }
-              
-              function isAbstract(node) {
-                return node.attributes.name === 'abstract' ||
-                  // solc <= 0.2.0
-                  _.where(node.children, {
-                    name: 'Identifier',
-                    attributes: { value: 'abstract' }
-                  }).length != 0 ||
-                  // solc > 0.2.0
-                  _.where(node.children, {
-                    name: 'UserDefinedTypeName',
-                    attributes: { name: 'abstract' }
-                  }).length != 0;
-              }
-            }
+          try {
+            var compiled = JSON.parse(output);
+          } catch (e) {
+            console.error(e);
+            return cb('Could not parse solc output: ' + e.message);
           }
-        );
-      }
+
+          var contracts = _.map(compiled.contracts, function(contract, name) {
+            return {
+              name: name,
+              binary: contract.bin,
+              abi: JSON.parse(contract.abi),
+              root: dir,
+              sources: sources,
+              ast: compiled.sources,
+              srcmap: contract['srcmap'],
+              srcmapRuntime: contract['srcmap-runtime'],
+              sourceList: _.map(compiled.sourceList, function(source) {
+                return '/root/workspace' + dir + source;
+              })
+            };
+          });
+          
+          try {
+            cb(
+              null,
+              {
+                warnings: warnings.length == 0 ? null : warnings,
+                contracts: contracts
+              }
+            );
+          } catch (e) {
+            console.error(e);
+            return cb('Could not parse contract abi: ' + e.message);
+          }
+        }
+      );
     }
     
     function getAST(text, cb) {
@@ -240,33 +201,6 @@ define(function(require, exports, module) {
         });
       });
     }
-
-    function getDependencies(files, dir, cb) {
-      var dependencies = [];
-      getDeps(files, dependencies, _.partial(cb, _, dependencies));
-
-      function getDeps(files, dependencies, cb) {
-        async.eachSeries(files, function(file, cb) {
-          if (_.startsWith(file, './')) file = file.substr(2);
-          
-          if (_.includes(dependencies, file)) return cb();
-
-          dependencies.push(file);
-          
-          fs.readFile(dir + file, function(err, content) {
-            if (err) return cb(err);
-            var rx = /^(?:\s*import\s*")([^"]*)"/gm,
-                match,
-                deps = [];
-            while ((match = rx.exec(content)) !== null) {
-              deps.push(match[1]);
-            }
-            getDeps(deps, dependencies, cb);
-          });
-        }, cb);
-      }
-    }
-
 
     plugin.on('load', function() {
       load();
