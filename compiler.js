@@ -156,14 +156,11 @@ define(function(require, exports, module) {
               name: name,
               binary: contract.bin,
               abi: JSON.parse(contract.abi),
-              root: dir,
-              sources: sources,
+              root: c9.workspaceDir + dir,
+              sourceList: compiled.sourceList,
               ast: compiled.sources,
               srcmap: contract['srcmap'],
-              srcmapRuntime: contract['srcmap-runtime'],
-              sourceList: _.map(compiled.sourceList, function(source) {
-                return '/root/workspace' + dir + source;
-              })
+              srcmapRuntime: contract['srcmap-runtime']
             };
           });
           
