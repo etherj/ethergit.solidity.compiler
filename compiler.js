@@ -27,9 +27,11 @@ define(function(require, exports, module) {
     function load() {
       settings.on('read', function(){
         settings.setDefaults('user/ethergit-solidity-compiler', [
-          ['solc', 'solc']
+          [ 'solc', options.solc ]
         ]);
       }, plugin);
+
+      console.log('solc : ' + options.solc);
 
       prefs.add({
         'Run' : {
