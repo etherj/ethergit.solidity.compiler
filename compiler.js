@@ -134,9 +134,12 @@ define(function(require, exports, module) {
       );
     }
     
-    function binaryAndABI(sources, dir, cb) {
+    function binaryAndABI(sources, dir, withDebug, cb) {
+      var options = withDebug ?
+            ['--combined-json', 'bin,abi,srcmap,srcmap-runtime,ast'] :
+            ['--optimize', '--combined-json', 'bin,abi,ast'];
       solc(
-        sources.concat(['--optimize', '--combined-json', 'bin,abi,ast']),
+        sources.concat(options),
         dir,
         function(err, output, warnings) {
           if (err) return cb(err);
@@ -153,8 +156,11 @@ define(function(require, exports, module) {
               name: name,
               binary: contract.bin,
               abi: JSON.parse(contract.abi),
-              root: dir,
-              sources: sources
+              root: c9.workspaceDir + dir,
+              sourceList: compiled.sourceList,
+              ast: compiled.sources,
+              srcmap: contract['srcmap'],
+              srcmapRuntime: contract['srcmap-runtime']
             };
           });
           
