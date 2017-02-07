@@ -153,7 +153,7 @@ define(function(require, exports, module) {
 
           var contracts = _.map(compiled.contracts, function(contract, name) {
             return {
-              name: name,
+              name: name.substr(name.indexOf(':') + 1),
               binary: contract.bin,
               abi: JSON.parse(contract.abi),
               root: c9.workspaceDir + dir,
