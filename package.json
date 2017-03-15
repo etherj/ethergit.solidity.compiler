@@ -1,7 +1,7 @@
 {
   "name": "ethergit.solidity.compiler",
   "description": "Solidity Compiler",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "author": "EtherGit",
   "contributors": [
     {
