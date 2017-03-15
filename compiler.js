@@ -100,7 +100,7 @@ define(function(require, exports, module) {
         {
           args: args,
           cwd: c9.workspaceDir + dir,
-          maxBuffer: 1024 * 1024
+          maxBuffer: 1024 * 1024 * 50
         },
         function(err, stdout, stderr) {
           if (err) {
