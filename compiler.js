@@ -100,7 +100,7 @@ define(function(require, exports, module) {
         {
           args: args,
           cwd: c9.workspaceDir + dir,
-          maxBuffer: 1024 * 1024
+          maxBuffer: 1024 * 1024 * 50
         },
         function(err, stdout, stderr) {
           if (err) {
@@ -110,7 +110,7 @@ define(function(require, exports, module) {
                 message: 'Could not find ' + solcBin + '. Please, specify a path to Solidity compiler in the preferences.'
               });
             } else if (err.message.indexOf('Command failed: ') !== -1) {
-              var info = err.message.match(/^([^: ]+):(\d+):(\d+):/m);
+              var info = err.message.match(/^([^: ]+):(\d+):(\d+):\sError/m);
               if (!info) cb({ type: 'SYSTEM', message: err.message });
               else {
                 var file = _.startsWith(info[1], './') ?
@@ -134,11 +134,15 @@ define(function(require, exports, module) {
       );
     }
     
-    function binaryAndABI(sources, dir, cb) {
+    function binaryAndABI(sources, dir, withDebug, cb) {
+      var options = withDebug ?
+            ['--combined-json', 'bin,abi,srcmap,srcmap-runtime,ast'] :
+            ['--optimize', '--combined-json', 'bin,abi,ast'];
       solc(
-        sources.concat(['--optimize', '--combined-json', 'bin,abi,ast']),
+        sources.concat(options),
         dir,
         function(err, output, warnings) {
+
           if (err) return cb(err);
 
           try {
@@ -150,11 +154,14 @@ define(function(require, exports, module) {
 
           var contracts = _.map(compiled.contracts, function(contract, name) {
             return {
-              name: name,
+              name: name.substr(name.indexOf(':') + 1),
               binary: contract.bin,
               abi: JSON.parse(contract.abi),
-              root: dir,
-              sources: sources
+              root: c9.workspaceDir + dir,
+              sourceList: compiled.sourceList,
+              ast: compiled.sources,
+              srcmap: contract['srcmap'],
+              srcmapRuntime: contract['srcmap-runtime']
             };
           });
           
